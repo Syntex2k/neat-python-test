@@ -1,3 +1,6 @@
+# Heavily Inspired by Tech With Tim's Tutorial Series:
+# https://www.youtube.com/watch?v=MMxFDaIOHsE&list=PLzMcBGfZo4-lwGZWXz5Qgta_YNX3_vLS2
+
 import os
 
 import neat
