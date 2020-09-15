@@ -1,9 +1,12 @@
-import pygame
-import random
+# Heavily Inspired by Tech With Tim's Tutorial Series:
+# https://www.youtube.com/watch?v=MMxFDaIOHsE&list=PLzMcBGfZo4-lwGZWXz5Qgta_YNX3_vLS2
+
 import os
-import time
-import neat
 import pickle
+import random
+
+import neat
+import pygame
 
 pygame.font.init()  # init font
 
@@ -284,8 +287,8 @@ def draw_window(win, birds, pipes, base, score, gen, pipe_ind):
                                  5)
                 pygame.draw.line(win, (255, 0, 0),
                                  (bird.x + bird.img.get_width() / 2, bird.y + bird.img.get_height() / 2), (
-                                 pipes[pipe_ind].x + pipes[pipe_ind].PIPE_BOTTOM.get_width() / 2,
-                                 pipes[pipe_ind].bottom), 5)
+                                     pipes[pipe_ind].x + pipes[pipe_ind].PIPE_BOTTOM.get_width() / 2,
+                                     pipes[pipe_ind].bottom), 5)
             except:
                 pass
         # draw bird
@@ -319,15 +322,15 @@ def evaluate_genomes(genomes, config):
     # start by creating lists holding the genome itself, the
     # neural network associated with the genome and the
     # bird object that uses that network to play
-    nets = []
+    neural_networks = []
     birds = []
-    ge = []
+    genome_list = []
     for genome_id, genome in genomes:
         genome.fitness = 0  # start with fitness level of 0
-        net = neat.nn.FeedForwardNetwork.create(genome, config)
-        nets.append(net)
+        net = neat.nn.FeedForwardNetwork.create(genome, config)  # create a feed forward network for every bird
+        neural_networks.append(net)
         birds.append(Bird(230, 350))
-        ge.append(genome)
+        genome_list.append(genome)
 
     base = Base(FLOOR)
     pipes = [Pipe(700)]
@@ -337,7 +340,7 @@ def evaluate_genomes(genomes, config):
 
     run = True
     while run and len(birds) > 0:
-        clock.tick(80)
+        clock.tick(60)  # 60 frames per second / refresh rate
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -352,16 +355,18 @@ def evaluate_genomes(genomes, config):
                 0].PIPE_TOP.get_width():  # determine whether to use the first or second
                 pipe_ind = 1  # pipe on the screen for neural network input
 
-        for x, bird in enumerate(birds):  # give each bird a fitness of 0.1 for each frame it stays alive
-            ge[x].fitness += 0.1
+        for index, bird in enumerate(birds):  # give each bird a fitness of 0.1 for each frame it stays alive
+            genome_list[index].fitness += 0.05
             bird.move()
 
             # send bird location, top pipe location and bottom pipe location and determine from network whether to jump or not
-            output = nets[birds.index(bird)].activate(
-                (bird.y, abs(bird.y - pipes[pipe_ind].height), abs(bird.y - pipes[pipe_ind].bottom)))
+            distance_top = abs(bird.y - pipes[pipe_ind].height)
+            distance_bottom = abs(bird.y - pipes[pipe_ind].bottom)
+            output = neural_networks[birds.index(bird)].activate(
+                (bird.y, distance_top, distance_bottom))
 
             if output[
-                0] > 0.5:  # we use a tanh activation function so result will be between -1 and 1. if over 0.5 jump
+                0] > 0.0:  # we use a tanh activation function so result will be between -1 and 1. if over 0.0 jump
                 bird.jump()
 
         base.move()
@@ -373,9 +378,9 @@ def evaluate_genomes(genomes, config):
             # check for collision
             for bird in birds:
                 if pipe.collide(bird, win):
-                    ge[birds.index(bird)].fitness -= 1
-                    nets.pop(birds.index(bird))
-                    ge.pop(birds.index(bird))
+                    genome_list[birds.index(bird)].fitness -= 1
+                    neural_networks.pop(birds.index(bird))
+                    genome_list.pop(birds.index(bird))
                     birds.pop(birds.index(bird))
 
             if pipe.x + pipe.PIPE_TOP.get_width() < 0:
@@ -388,7 +393,7 @@ def evaluate_genomes(genomes, config):
         if add_pipe:
             score += 1
             # can add this line to give more reward for passing through a pipe (not required)
-            for genome in ge:
+            for genome in genome_list:
                 genome.fitness += 5
             pipes.append(Pipe(WIN_WIDTH))
 
@@ -397,13 +402,14 @@ def evaluate_genomes(genomes, config):
 
         for bird in birds:
             if bird.y + bird.img.get_height() - 10 >= FLOOR or bird.y < -50:
-                nets.pop(birds.index(bird))
-                ge.pop(birds.index(bird))
+                neural_networks.pop(birds.index(bird))
+                genome_list.pop(birds.index(bird))
                 birds.pop(birds.index(bird))
 
         draw_window(WIN, birds, pipes, base, score, gen, pipe_ind)
 
         # break if score gets large enough
         if score > 20:
-            pickle.dump(nets[0], open("best_net", "wb"))
+            # save network so we could potentially load it again
+            pickle.dump(neural_networks[0], open("best_net", "wb"))
             break
