@@ -308,6 +308,10 @@ def draw_window(win, birds, pipes, base, score, gen, pipe_ind):
 
     pygame.display.update()
 
+    """
+    EVERYTHING ABOVE IS JUST GRAPHICS AND NOT REALLY IMPORTANT AND INTERESTING :d
+    """
+
 
 def evaluate_genomes(genomes, config):
     """
@@ -342,7 +346,7 @@ def evaluate_genomes(genomes, config):
     while run and len(birds) > 0:
         clock.tick(60)  # 60 frames per second / refresh rate
 
-        for event in pygame.event.get():
+        for event in pygame.event.get():  # look for quit events
             if event.type == pygame.QUIT:
                 run = False
                 pygame.quit()
@@ -351,11 +355,11 @@ def evaluate_genomes(genomes, config):
 
         pipe_ind = 0
         if len(birds) > 0:
-            if len(pipes) > 1 and birds[0].x > pipes[0].x + pipes[
-                0].PIPE_TOP.get_width():  # determine whether to use the first or second
+            # determine whether to use the first or second
+            if len(pipes) > 1 and birds[0].x > pipes[0].x + pipes[0].PIPE_TOP.get_width():
                 pipe_ind = 1  # pipe on the screen for neural network input
 
-        for index, bird in enumerate(birds):  # give each bird a fitness of 0.1 for each frame it stays alive
+        for index, bird in enumerate(birds):  # give each bird a fitness of 0.05 for each frame it stays alive
             genome_list[index].fitness += 0.05
             bird.move()
 
@@ -365,10 +369,11 @@ def evaluate_genomes(genomes, config):
             output = neural_networks[birds.index(bird)].activate(
                 (bird.y, distance_top, distance_bottom))
 
-            if output[
-                0] > 0.0:  # we use a tanh activation function so result will be between -1 and 1. if over 0.0 jump
+            # we use a tanh activation function so result will be between -1 and 1. if over 0.0 jump
+            if output[0] > 0.0:
                 bird.jump()
 
+        #shift the base a little
         base.move()
 
         rem = []
@@ -394,7 +399,7 @@ def evaluate_genomes(genomes, config):
             score += 1
             # can add this line to give more reward for passing through a pipe (not required)
             for genome in genome_list:
-                genome.fitness += 5
+                genome.fitness += 5 # plus 5 fitness for every pipe it passes
             pipes.append(Pipe(WIN_WIDTH))
 
         for r in rem:
